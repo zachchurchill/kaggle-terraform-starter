@@ -1,5 +1,7 @@
 # kaggle-terraform-starter
 
+![](https://github.com/zach-churchill/kaggle-terraform-starter/workflows/Continuous%20Integration/badge.svg)
+
 This repository contains a Terraform module that can be used to set your AWS account with various
 services that are need for participating in a Kaggle competition.
 
