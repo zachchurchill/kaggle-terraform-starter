@@ -2,13 +2,19 @@ name: Continuous Integration
 on: [push]
 
 jobs:
-  build:
+  terraform:
+    name: 'Terraform'
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v2
-    - uses: marocchino/setup-terraform@v1
+    - name: 'Checkout Code'
+      uses: actions/checkout@v2
+    - name: 'Terraform Format'
+      uses: hashicorp/terraform-github-actions@master
       with:
-        version: "0.12.24"
-    - run: terraform fmt -check=true -write=false -diff -recursive
-    - run: terraform validate
+        tf_actions_version: 0.12.24
+        tf_actions_subcommand: 'fmt'
+    - name: 'Terraform Validate'
+      uses: hashicorp/terraform-github-actions@master
+      with:
+        tf_actions_version: 0.12.24
+        tf_actions_subcommand: 'validate'
