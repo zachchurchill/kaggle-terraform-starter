@@ -36,3 +36,20 @@ data "aws_region" "current" {}
 data "aws_secretsmanager_secret" "kaggle_api" {
   name = var.secret_name
 }
+
+# ----------------------------------------------------------------------------------------------------------------------
+# S3 BUCKET
+# We're going to set up an S3 bucket that is dedicated to storing the data and model artifacts for each
+# Kaggle competition that's created with this module. In order to ensure that the S3 uses a unique bucket
+# name, a variable for the S3 bucket prefix is provided for the user to use; otherwise, if the variable is
+# not given a value, then the AWS caller identity's account ID number is used.
+# ----------------------------------------------------------------------------------------------------------------------
+
+locals {
+  s3_bucket_prefix = var.s3_bucket_prefix == null ? data.aws_caller_identity.current.account_id : var.s3_bucket_prefix
+}
+
+resource "aws_s3_bucket" "kaggle_s3_bucket" {
+  bucket = "${local.s3_bucket_prefix}-kaggle-${var.competition}"
+  acl    = "private"
+}

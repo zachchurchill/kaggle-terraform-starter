@@ -25,3 +25,9 @@ variable "secret_name" {
 # OPTIONAL PARAMETERS
 # These parameters have reasonable defaults.
 # ----------------------------------------------------------------------------------------------------------------------
+
+variable "s3_bucket_prefix" {
+  description = "The prefix used for the S3 bucket name that ensures globally unique bucket names"
+  type        = string
+  default     = null
+}
