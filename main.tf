@@ -53,3 +53,65 @@ resource "aws_s3_bucket" "kaggle_s3_bucket" {
   bucket = "${local.s3_bucket_prefix}-kaggle-${var.competition}"
   acl    = "private"
 }
+
+# ----------------------------------------------------------------------------------------------------------------------
+# IAM ROLE
+#	In order to keep the permissions for various resources across the user's account tidy, we will set up an
+#	IAM role that will be used by the SageMaker services. This IAM role will have access to get the Kaggle
+#	API key from SecretsManager, and full access to the S3 bucket for this competition.
+# ----------------------------------------------------------------------------------------------------------------------
+
+data "aws_iam_policy_document" "kaggle_iam_policy" {
+  statement {
+    sid = "1"
+
+    actions = [
+      "s3:*"
+    ]
+
+    resources = [
+      "arn:aws:s3:::${aws_s3_bucket.kaggle_s3_bucket}"
+    ]
+  }
+
+  statement {
+    actions = [
+      "secretsmanager:GetSecretValue"
+    ]
+
+    resources = [
+      data.aws_secretsmanager_secret.kaggle_api.arn
+    ]
+  }
+}
+
+resource "aws_iam_policy" "kaggle_iam_policy" {
+  name   = "kaggle-${var.competition}"
+  path   = "/"
+  policy = data.aws_iam_policy_document.kaggle_iam_policy.json
+}
+
+resource "aws_iam_role" "kaggle_iam_role" {
+  name = "kaggle-${var.competition}"
+
+  assume_role_policy = <<EOF
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Action": "sts:AssumeRole",
+			"Principal": {
+				"Service": "sagemaker.amazonaws.com"
+			},
+			"Effect": "Allow",
+			"Sid": ""
+		}
+	]
+}
+EOF
+}
+
+resource "aws_iam_role_policy_attachment" "kaggle_iam_policy_attach" {
+  role       = aws_iam_role.kaggle_iam_role.name
+  policy_arn = aws_iam_policy.kaggle_iam_policy.arn
+}
