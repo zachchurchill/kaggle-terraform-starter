@@ -16,32 +16,41 @@ const s3BucketNameOutput string = "s3_bucket_name"
 
 // getBucketName is a helper function that returns the bucket name using the
 // same formatted string as the Terraform module code
-func getBucketName(prefix, suffix string) string {
-	return fmt.Sprintf("%s-kaggle-%s", prefix, suffix)
+func getBucketName(prefix, competition, randomSuffix string) string {
+	return fmt.Sprintf("%s-kaggle-%s-%s", prefix, competition, randomSuffix)
 }
 
 func TestS3BucketWithDefaultBucketPrefix(t *testing.T) {
 	t.Parallel()
 
+	// Set up variables to include random testing suffix
+	variables := getRequiredVariables()
+	suffixVariable, suffixValue := getRandomTestingSuffix()
+	variables[suffixVariable] = suffixValue
+
 	testS3Bucket(
 		t,
-		getRequiredVariables(), // Only use the required variables
-		getBucketName(aws.GetAccountId(t), competitionName),
+		variables,
+		getBucketName(aws.GetAccountId(t), competitionName, suffixValue),
 	)
 }
 
 func TestS3BucketWithProvidedBucketPrefix(t *testing.T) {
 	t.Parallel()
 
-	// Include a prefix in the variables
-	s3BucketPrefix := "test-prefix"
+	// Set up variables to include random testing suffix and include prefix for S3
 	variables := getRequiredVariables()
+
+	suffixVariable, suffixValue := getRandomTestingSuffix()
+	variables[suffixVariable] = suffixValue
+
+	s3BucketPrefix := "test-prefix"
 	variables[s3BucketPrefixVariable] = s3BucketPrefix
 
 	testS3Bucket(
 		t,
 		variables,
-		getBucketName(s3BucketPrefix, competitionName),
+		getBucketName(s3BucketPrefix, competitionName, suffixValue),
 	)
 }
 

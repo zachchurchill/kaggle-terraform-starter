@@ -26,6 +26,12 @@ variable "secret_name" {
 # These parameters have reasonable defaults.
 # ----------------------------------------------------------------------------------------------------------------------
 
+variable "random_testing_suffix" {
+  description = "Suffix used by Terratest to guarantee unique names during parallel testing"
+  type        = string
+  default     = null
+}
+
 variable "s3_bucket_prefix" {
   description = "The prefix used for the S3 bucket name that ensures globally unique bucket names"
   type        = string

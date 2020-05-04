@@ -27,6 +27,17 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 # ----------------------------------------------------------------------------------------------------------------------
+# SET-UP VARIABLES
+# In order to make use of the potential testing suffixes, we're going to create all of the necessary
+# variables in a local block to utilize the suffix if provided.
+# ----------------------------------------------------------------------------------------------------------------------
+
+locals {
+  competition      = var.random_testing_suffix == null ? var.competition : "${var.competition}-${var.random_testing_suffix}"
+  s3_bucket_prefix = var.s3_bucket_prefix == null ? data.aws_caller_identity.current.account_id : var.s3_bucket_prefix
+}
+
+# ----------------------------------------------------------------------------------------------------------------------
 # KAGGLE API CREDENTIALS SECRET
 # In order to allow the user to interact with Kaggle from the SageMaker Notebook Instance, the Secrets
 # Manager secret containing the API key provided in the `kaggle.json` file needs to already exist in
@@ -45,12 +56,8 @@ data "aws_secretsmanager_secret" "kaggle_api" {
 # not given a value, then the AWS caller identity's account ID number is used.
 # ----------------------------------------------------------------------------------------------------------------------
 
-locals {
-  s3_bucket_prefix = var.s3_bucket_prefix == null ? data.aws_caller_identity.current.account_id : var.s3_bucket_prefix
-}
-
 resource "aws_s3_bucket" "kaggle_s3_bucket" {
-  bucket = "${local.s3_bucket_prefix}-kaggle-${var.competition}"
+  bucket = "${local.s3_bucket_prefix}-kaggle-${local.competition}"
   acl    = "private"
 }
 
@@ -70,7 +77,7 @@ data "aws_iam_policy_document" "kaggle_iam_policy" {
     ]
 
     resources = [
-      "arn:aws:s3:::${aws_s3_bucket.kaggle_s3_bucket}"
+      "arn:aws:s3:::${aws_s3_bucket.kaggle_s3_bucket.bucket}"
     ]
   }
 
@@ -86,13 +93,13 @@ data "aws_iam_policy_document" "kaggle_iam_policy" {
 }
 
 resource "aws_iam_policy" "kaggle_iam_policy" {
-  name   = "kaggle-${var.competition}"
+  name   = "kaggle-${local.competition}"
   path   = "/"
   policy = data.aws_iam_policy_document.kaggle_iam_policy.json
 }
 
 resource "aws_iam_role" "kaggle_iam_role" {
-  name = "kaggle-${var.competition}"
+  name = "kaggle-${local.competition}"
 
   assume_role_policy = <<EOF
 {
