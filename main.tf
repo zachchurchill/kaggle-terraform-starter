@@ -27,6 +27,17 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 # ----------------------------------------------------------------------------------------------------------------------
+# SET-UP VARIABLES
+# In order to make use of the potential testing suffixes, we're going to create all of the necessary
+# variables in a local block to utilize the suffix if provided.
+# ----------------------------------------------------------------------------------------------------------------------
+
+locals {
+  competition      = var.random_testing_suffix == null ? var.competition : "${var.competition}-${var.random_testing_suffix}"
+  s3_bucket_prefix = var.s3_bucket_prefix == null ? data.aws_caller_identity.current.account_id : var.s3_bucket_prefix
+}
+
+# ----------------------------------------------------------------------------------------------------------------------
 # KAGGLE API CREDENTIALS SECRET
 # In order to allow the user to interact with Kaggle from the SageMaker Notebook Instance, the Secrets
 # Manager secret containing the API key provided in the `kaggle.json` file needs to already exist in
@@ -45,11 +56,69 @@ data "aws_secretsmanager_secret" "kaggle_api" {
 # not given a value, then the AWS caller identity's account ID number is used.
 # ----------------------------------------------------------------------------------------------------------------------
 
-locals {
-  s3_bucket_prefix = var.s3_bucket_prefix == null ? data.aws_caller_identity.current.account_id : var.s3_bucket_prefix
+resource "aws_s3_bucket" "kaggle_s3_bucket" {
+  bucket = "${local.s3_bucket_prefix}-kaggle-${local.competition}"
+  acl    = "private"
 }
 
-resource "aws_s3_bucket" "kaggle_s3_bucket" {
-  bucket = "${local.s3_bucket_prefix}-kaggle-${var.competition}"
-  acl    = "private"
+# ----------------------------------------------------------------------------------------------------------------------
+# IAM ROLE
+#	In order to keep the permissions for various resources across the user's account tidy, we will set up an
+#	IAM role that will be used by the SageMaker services. This IAM role will have access to get the Kaggle
+#	API key from SecretsManager, and full access to the S3 bucket for this competition.
+# ----------------------------------------------------------------------------------------------------------------------
+
+data "aws_iam_policy_document" "kaggle_iam_policy" {
+  statement {
+    sid = "1"
+
+    actions = [
+      "s3:*"
+    ]
+
+    resources = [
+      "arn:aws:s3:::${aws_s3_bucket.kaggle_s3_bucket.bucket}"
+    ]
+  }
+
+  statement {
+    actions = [
+      "secretsmanager:GetSecretValue"
+    ]
+
+    resources = [
+      data.aws_secretsmanager_secret.kaggle_api.arn
+    ]
+  }
+}
+
+resource "aws_iam_policy" "kaggle_iam_policy" {
+  name   = "kaggle-${local.competition}"
+  path   = "/"
+  policy = data.aws_iam_policy_document.kaggle_iam_policy.json
+}
+
+resource "aws_iam_role" "kaggle_iam_role" {
+  name = "kaggle-${local.competition}"
+
+  assume_role_policy = <<EOF
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Action": "sts:AssumeRole",
+			"Principal": {
+				"Service": "sagemaker.amazonaws.com"
+			},
+			"Effect": "Allow",
+			"Sid": ""
+		}
+	]
+}
+EOF
+}
+
+resource "aws_iam_role_policy_attachment" "kaggle_iam_policy_attach" {
+  role       = aws_iam_role.kaggle_iam_role.name
+  policy_arn = aws_iam_policy.kaggle_iam_policy.arn
 }
