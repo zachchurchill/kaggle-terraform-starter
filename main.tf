@@ -122,3 +122,20 @@ resource "aws_iam_role_policy_attachment" "kaggle_iam_policy_attach" {
   role       = aws_iam_role.kaggle_iam_role.name
   policy_arn = aws_iam_policy.kaggle_iam_policy.arn
 }
+
+# ----------------------------------------------------------------------------------------------------------------------
+# SageMaker Lifecycle Configuration
+# In order to provide users easy access to the Kaggle API package in every Python 3 environment provided
+# by SageMaker, the following lifecycle configuration will: fetch the secret value of the Kaggle API key
+# and save it in the default location on the EC2 instance that the Notebook instance creates, and performs
+# a `pip install` in each Python 3 environment for the kaggle package.
+# ----------------------------------------------------------------------------------------------------------------------
+
+data "local_file" "lifecycle_script" {
+  filename = "${path.module}/src/lifecycle.sh"
+}
+
+resource "aws_sagemaker_notebook_instance_lifecycle_configuration" "competition_lifecycle" {
+  name     = "${local.competition}-lifecycle"
+  on_start = base64encode(data.local_file.lifecycle_script.content)
+}
