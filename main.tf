@@ -68,7 +68,7 @@ resource "aws_s3_bucket" "kaggle_s3_bucket" {
 #	API key from SecretsManager, and full access to the S3 bucket for this competition.
 # ----------------------------------------------------------------------------------------------------------------------
 
-data "aws_iam_policy_document" "kaggle_iam_policy" {
+data "aws_iam_policy_document" "kaggle_iam_policy_document" {
   statement {
     sid = "1"
 
@@ -95,7 +95,11 @@ data "aws_iam_policy_document" "kaggle_iam_policy" {
 resource "aws_iam_policy" "kaggle_iam_policy" {
   name   = "kaggle-${local.competition}"
   path   = "/"
-  policy = data.aws_iam_policy_document.kaggle_iam_policy.json
+  policy = data.aws_iam_policy_document.kaggle_iam_policy_document.json
+}
+
+data "aws_iam_policy" "sagemaker_full_access_policy" {
+  arn = "arn:aws:iam::aws:policy/AmazonSageMakerFullAccess"
 }
 
 resource "aws_iam_role" "kaggle_iam_role" {
@@ -121,6 +125,11 @@ EOF
 resource "aws_iam_role_policy_attachment" "kaggle_iam_policy_attach" {
   role       = aws_iam_role.kaggle_iam_role.name
   policy_arn = aws_iam_policy.kaggle_iam_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "sm_full_access_policy_attach" {
+  role       = aws_iam_role.kaggle_iam_role.name
+  policy_arn = data.aws_iam_policy.sagemaker_full_access_policy.arn
 }
 
 # ----------------------------------------------------------------------------------------------------------------------
