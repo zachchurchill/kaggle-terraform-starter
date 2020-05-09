@@ -37,3 +37,9 @@ variable "s3_bucket_prefix" {
   type        = string
   default     = null
 }
+
+variable "notebook_instance_type" {
+  description = "The instance type to use when setting up SageMaker Notebook Instance"
+  type        = string
+  default     = "ml.m5.2xlarge"
+}

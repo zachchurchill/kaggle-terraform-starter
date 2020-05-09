@@ -9,3 +9,7 @@ output "s3_bucket_arn" {
 output "lifecycle_script_arn" {
   value = aws_sagemaker_notebook_instance_lifecycle_configuration.competition_lifecycle.arn
 }
+
+output "notebook_arn" {
+  value = aws_sagemaker_notebook_instance.notebook_instance.arn
+}

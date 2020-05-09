@@ -139,3 +139,17 @@ resource "aws_sagemaker_notebook_instance_lifecycle_configuration" "competition_
   name     = "${local.competition}-lifecycle"
   on_start = base64encode(data.local_file.lifecycle_script.content)
 }
+
+# ----------------------------------------------------------------------------------------------------------------------
+# SageMaker Notebook Instance
+# The main purpose of this module, the following resource creates the SageMaker Notebook Instance
+# using the IAM role and Lifecycle configuration defined above. Additionally, it utilizes a variable
+# for the instance type so that the user can create large notebook instances with Terraform.
+# ----------------------------------------------------------------------------------------------------------------------
+
+resource "aws_sagemaker_notebook_instance" "notebook_instance" {
+  name                  = "${local.competition}-notebook"
+  role_arn              = aws_iam_role.kaggle_iam_role.arn
+  instance_type         = var.notebook_instance_type
+  lifecycle_config_name = aws_sagemaker_notebook_instance_lifecycle_configuration.competition_lifecycle.name
+}
